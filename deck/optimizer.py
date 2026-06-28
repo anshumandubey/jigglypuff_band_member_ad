@@ -23,7 +23,7 @@ def max_allowed_count(card_id: int) -> int:
 
 
 def deck_synergy_score(deck_ids: Sequence[int]) -> float:
-    """Estimate how well a deck matches the current core strategy."""
+    """Estimate how well a deck matches the current core strategy while allowing some mixed-type diversity."""
     counts = Counter(deck_ids)
     score = 0.0
 
@@ -53,6 +53,14 @@ def deck_synergy_score(deck_ids: Sequence[int]) -> float:
     score += counts.get(6, 0) * 0.1
     score += counts.get(678, 0) * 0.4
     score += counts.get(1102, 0) * 0.2
+
+    psychic_targets = {1139, 1140, 1143, 1144, 1145, 1146, 1147, 1148, 1149, 1150}
+    psychic_count = sum(counts.get(card_id, 0) for card_id in psychic_targets)
+    score += psychic_count * 2.0
+
+    mixed_card_ids = {673, 674, 675, 676, 677, 678, 1102, 1123, 1141, 1142, 1152, 1159, 1182, 1192, 1227, 1252, 6}
+    non_core_count = sum(1 for card_id in counts if card_id not in mixed_card_ids and counts[card_id] > 0)
+    score += min(non_core_count, 4) * 1.2
     return score
 
 
@@ -72,7 +80,7 @@ def mutate_deck(deck_ids: Sequence[int], replacements: Iterable[tuple[int, int]]
 
 
 def build_candidate_pool(deck_ids: Sequence[int], db: CardDatabase | None = None) -> list[int]:
-    """Build a small pool of plausible replacement cards for the current deck."""
+    """Build a broader pool of plausible replacement cards so the optimizer can explore mixed decks."""
     database = db or load_default_database()
     pool = list(dict.fromkeys(deck_ids))
     relevant_ids: set[int] = set(pool)
@@ -95,6 +103,21 @@ def build_candidate_pool(deck_ids: Sequence[int], db: CardDatabase | None = None
         "hero cape",
         "gravity mountain",
         "energy",
+        "porygon",
+        "mimikyu",
+        "sylveon",
+        "gengar",
+        "charizard",
+        "pikachu",
+        "vaporeon",
+        "snorlax",
+        "radiant",
+        "psychic",
+        "mew",
+        "gardevoir",
+        "slowbro",
+        "meloetta",
+        "garbodor",
     }
 
     for card in database.all_cards():
@@ -102,16 +125,16 @@ def build_candidate_pool(deck_ids: Sequence[int], db: CardDatabase | None = None
             continue
         name_key = card.name.lower()
         if isinstance(card, PokemonCard):
-            if card.card_type == "Fighting" or any(keyword in name_key for keyword in keywords):
+            if card.card_type in {"Fighting", "Psychic", "Grass", "Fire", "Water", "Lightning", "Darkness"} or any(keyword in name_key for keyword in keywords):
                 relevant_ids.add(card.card_id)
         elif isinstance(card, TrainerCard):
-            if any(keyword in name_key for keyword in keywords):
+            if any(keyword in name_key for keyword in keywords) or "ball" in name_key or "switch" in name_key:
                 relevant_ids.add(card.card_id)
         elif isinstance(card, EnergyCard):
-            if card.energy_type == "Fighting" or card.card_type == "Fighting" or "energy" in name_key:
+            if card.energy_type in {"Fighting", "Psychic", "Grass", "Fire", "Water", "Lightning", "Darkness"} or card.card_type in {"Fighting", "Psychic", "Grass", "Fire", "Water", "Lightning", "Darkness"} or "energy" in name_key:
                 relevant_ids.add(card.card_id)
 
-    return [card_id for card_id in relevant_ids if card_id != 0][:40]
+    return [card_id for card_id in relevant_ids if card_id != 0][:80]
 
 
 def evaluate_deck(deck_ids: Sequence[int], games: int = 2) -> dict:
