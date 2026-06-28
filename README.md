@@ -1,260 +1,109 @@
 # Pokemon TCG AI Battle
 
-Local development environment for the Kaggle **Pokemon TCG AI Battle** competition.
+This repository contains a local development environment and an evolving agent for the Kaggle Pokemon TCG AI Battle competition.
+
+The current project is no longer a sample-only baseline: it includes a heuristic rule-based agent, a local battle harness, benchmarking tools, and a lightweight deck/agent optimization loop.
 
 ---
 
-# Project Status
+## What is in this repo
 
-## ✅ Completed
-
-* Local Python environment configured
-* Official `cg` SDK extracted from the sample submission
-* Local battle simulation working
-* Custom `run_local.py` to simulate games locally
-* Replay generation
-* Visualization JSON generation (`vis.json`)
-* Basic debugging utilities
-
-Current agent is still the sample/random agent.
+- [main.py](main.py): Kaggle-compatible submission entrypoint and the main heuristic agent
+- [deck.csv](deck.csv): the current 60-card deck used by local battles
+- [run_local.py](run_local.py): local simulator wrapper for testing the agent
+- [tools/evaluation.py](tools/evaluation.py): local benchmark runner for win-rate and turn summaries
+- [deck/optimizer.py](deck/optimizer.py): lightweight deck and policy optimizer loop
+- [tests/](tests/): regression tests for scoring logic, evaluation helpers, and optimizer behavior
+- [cg/](cg/): official competition SDK files
 
 ---
 
-# Project Structure
+## Current status
 
-```
-ptcg-agent/
-│
-├── cg/                        # Official competition SDK
-│
-├── data/                      # Competition data
-│
-├── deck.csv                   # Current deck (60 card IDs)
-├── main.py                    # Kaggle submission entry point
-├── run_local.py               # Local simulator
-│
-├── replay.html                # Generated after each run
-├── vis.json                   # Generated after each run
-├── visualiser.html            # Local visualiser
-│
-├── debug_game.py              # Debugging utilities
-├── explore.py                 # SDK exploration
-├── inspect_game.py            # API inspection
-│
-├── beginner-guide-from-deck-list-to-first-valid-sub.ipynb
-│
-├── requirements.txt
-└── initial_setup.zip
-```
+### Implemented
+
+- Local Python environment setup
+- Official SDK integration
+- Local battle simulation and replay generation
+- A heuristic agent with scoring for:
+  - attacks
+  - setup plays
+  - retreat timing
+  - supporter plays
+  - bench placement
+  - draw/search actions
+- Local evaluation and benchmarking
+- A simple optimizer loop for both deck choice and policy weights
+
+### Current workflow
+
+The agent is tested locally before submission using the simulator and benchmark scripts.
 
 ---
 
-# Environment Setup
+## Setup
 
-Create a virtual environment.
+Create and activate a virtual environment:
 
-```
+```powershell
 python -m venv venv
-```
-
-Activate it.
-
-Windows PowerShell:
-
-```
 venv\Scripts\Activate.ps1
-```
-
-Install requirements.
-
-```
 pip install -r requirements.txt
 ```
 
 ---
 
-# Running a Local Battle
+## Run a local battle
 
-```
+```powershell
 python run_local.py
 ```
 
-The script will:
+This will run a local battle, call the agent, and regenerate replay and visualization artifacts.
 
-* Start a local battle
-* Call `main.agent()` whenever a decision is required
-* Continue until the battle finishes
-* Save:
+---
 
-```
-replay.html
-vis.json
+## Run a benchmark
+
+```powershell
+python tools/evaluation.py --games 10 --output outputs/benchmark.json
 ```
 
 ---
 
-# Viewing the Replay
+## Optimize the deck and policy
 
-Open
+A lightweight optimizer is available:
 
-```
-replay.html
-```
-
-in a browser.
-
----
-
-# Viewing vis.json
-
-The generated `vis.json` can be opened using the CABT visualizer.
-
-It contains:
-
-* every observation
-* every selected action
-* complete battle history
-
-Useful for debugging and replay analysis.
-
----
-
-# main.py
-
-`main.py` is the Kaggle submission file.
-
-Kaggle repeatedly calls
-
-```python
-agent(obs_dict)
+```powershell
+python -m deck.optimizer --games 2 --iterations 4 --candidate-limit 6
 ```
 
-Your agent returns a list of selected option indices.
+This evaluates small candidate changes and keeps the best-performing options from local battles.
 
 ---
 
-# deck.csv
+## Project structure
 
-Contains the 60-card deck.
-
-One card ID per line.
-
----
-
-# cg/
-
-Official competition SDK.
-
-Contains:
-
-* Python API
-* Windows DLL
-* Linux shared libraries
-* macOS library
-
-Do **not** modify these files.
-
----
-
-# Useful Files
-
-## run_local.py
-
-Runs a complete local battle.
-
-Generates:
-
-* replay.html
-* vis.json
-
----
-
-## debug_game.py
-
-Used to inspect observations and legal actions.
-
----
-
-## explore.py
-
-Used while exploring the SDK.
-
----
-
-## inspect_game.py
-
-Used to inspect the SDK API.
-
----
-
-# Current Development Status
-
-Current implementation:
-
-* Sample/random agent
-* Local simulator working
-* Replay generation working
-* Visualization generation working
-
-Next milestone:
-
-* Replace random decision making with a rule-based agent.
-
----
-
-# Future Roadmap
-
-## Phase 1
-
-* Build helper functions
-* Inspect observations
-* Inspect board state
-
-## Phase 2
-
-* Rule-based agent
-* Better attack selection
-* Better retreat logic
-* Better evolution logic
-
-## Phase 3
-
-* Local evaluation script
-* Automated benchmarking
-* Win-rate statistics
-
-## Phase 4
-
-* Advanced search
-* MCTS / Beam Search
-* Tournament-ready agent
-
----
-
-# Notes
-
-Current local testing uses the official `cg` SDK rather than Kaggle's online environment.
-
-The same `main.py` should work for both local testing and Kaggle submission.
-
----
-
-# Current Command Reference
-
-Run local battle
-
-```
-python run_local.py
+```text
+ptcg-agent/
+├── cg/                        # Official competition SDK
+├── cards/                     # Card database models and parser
+├── deck/                      # Deck loader and analysis helpers
+├── tests/                     # Regression tests
+├── tools/                     # Evaluation and analysis utilities
+├── deck.csv                   # Current deck list
+├── main.py                    # Kaggle submission entry point
+├── run_local.py               # Local simulator wrapper
+├── requirements.txt
+└── ROADMAP.md                 # Development roadmap
 ```
 
-Launch Jupyter
+---
 
-```
-jupyter lab
-```
+## Notes
 
-Activate environment
+- The repository is designed so local experimentation is done offline first.
+- The Kaggle submission remains centered on [main.py](main.py) and [deck.csv](deck.csv).
+- Large media/data assets are intentionally excluded from the repository history to keep the project lightweight.
 
-```
-venv\Scripts\Activate.ps1
-```
